@@ -1,0 +1,38 @@
+﻿@model Test_Crud_Operation.Models.ViewModel.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="col-10 m-2 p-2">
+    <h2 class="text-primary">Login</h2>
+</div>
+
+<form asp-action="Login" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="col-8">
+        <div class="form-group row">
+                <div class="col-4">
+                    <label asp-for="Email"></label>
+                </div>
+                <div class="col-8">
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-for="Email" class="text-danger"></span>
+                </div>
+        </div>
+         <div class="form-group row">
+                <div class="col-4">
+                    <label asp-for="Password"></label>
+                </div>
+                <div class="col-8">
+                    <input asp-for="Password" class="form-control" type="password"/>
+                    <span asp-for="Password" class="text-danger"></span>
+                </div>
+        </div>
+        <div class="row">
+            <div class="offset-4 col-8">
+                <button type="submit" class="btn btn-primary form-control ">Login</button>
+
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,77 @@
+﻿@model IEnumerable<Test_Crud_Operation.Models.Employee>
+@{
+    ViewData["Title"] = "Index";
+}
+
+<div class="row">
+    <div class="col-9">
+        <h2 class="text-primary">Employees List</h2>
+    </div>
+    <div class="col-3">
+        <a asp-action="Upsert" class="form-control btn btn-info">Add Employee</a>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <h3 class="text-danger">No Data Found</h3>
+}
+else
+{
+    <div class="container">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Street Address</th>
+                    <th>City</th>
+                    <th>Salary</th>
+                    <th>Picture</th>
+                    <th>actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var employee in Model)
+                {
+                    @if (employee.IsDeleted)
+                    {
+                        @Html.ActionLink("Undelete", "Undelete", "Employee", new { id = employee.Id }, new { @class = "btn btn-warning" })
+                    }
+                    else
+                    {
+                        using (Html.BeginForm("Delete", "Employee", new { id = employee.Id }))
+                        {
+                            <tr>
+                                <td>@employee.Name</td>
+                                <td>@employee.Address</td>
+                                <td>@employee.City</td>
+                                <td>@employee.Salary</td>
+                                <td>
+                                    @if (employee.imageUrl != null && employee.imageUrl.Length > 0)
+                                    {
+                                        var base64 = Convert.ToBase64String(employee.imageUrl);
+                                        var imgSrc = String.Format("data:image/png;base64,{0}", base64);
+                                        <img src="@imgSrc" alt="Employee Picture" style="max-width: 100px; max-height: 100px;" />
+                                    }
+                                    else
+                                    {
+                                        <span>No Picture</span>
+                                    }
+                                </td>
+                                <td>
+                                    @Html.ActionLink("Edit", "Upsert", "Employee", new { id = employee.Id }, new { @class = "btn btn-success" })
+                                    <input type="submit" value="Delete" class="btn btn-danger" onclick="return confirm('Want to Delete?')" />
+                                </td>
+                            </tr>
+                        }
+                    }
+                    
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+
+
+
