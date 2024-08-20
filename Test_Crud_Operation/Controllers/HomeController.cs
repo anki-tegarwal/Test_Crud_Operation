@@ -43,7 +43,7 @@ namespace Test_Crud_Operation.Controllers
                     model.Add(new ReportViewModel
                     {
                         DimensionOne = dept,
-                        Quantity = random.Next(0, 6),
+                        Quantity = random.Next(0, 12),
                         Month = month
                     });
                 }
