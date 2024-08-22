@@ -1,13 +1,12 @@
-﻿@model Test_Crud_Operation.Models.Employee
+﻿@model Test_Crud_Operation.Models.ViewModel.EmployeeVM
 @{
     ViewData["Title"] = "Upsert";
-    var title = Model.Id != 0 ? "Edit Employee" : "New Employee";
-    var saveUpdate = Model.Id != 0 ? "Update" : "Save";
+    var title = Model.Employee.Id != 0 ? "Edit Employee" : "New Employee";
+    var saveUpdate = Model.Employee.Id != 0 ? "Update" : "Save";
 }
 
 <div class="row">
     <div class="col-md-8">
-
         <form method="post" enctype="multipart/form-data">
             <div class="row">
                 <div class="col-9">
@@ -18,89 +17,93 @@
             <div class="col-8">
                 <div class="form-group row m-2 p-2">
                     <div class="col-4">
-                        <label asp-for="Name"></label>
+                        <label asp-for="Employee.Name"></label>
                     </div>
                     <div class="col-8">
-                        <input asp-for="Name" class="form-control" />
-                        <span asp-validation-for="Name" class="text-danger"></span>
+                        <input asp-for="Employee.Name" class="form-control" />
+                        <span asp-validation-for="Employee.Name" class="text-danger"></span>
                     </div>
                 </div>
                 <div class="form-group row m-2 p-2">
                     <div class="col-4">
-                        <label asp-for="Address"></label>
+                        <label asp-for="Employee.Address"></label>
                     </div>
                     <div class="col-8">
-                        <input asp-for="Address" class="form-control" />
-                        <span asp-validation-for="Address" class="text-danger"></span>
+                        <input asp-for="Employee.Address" class="form-control" />
+                        <span asp-validation-for="Employee.Address" class="text-danger"></span>
                     </div>
                 </div>
                 <div class="form-group row m-2 p-2">
                     <div class="col-4">
-                        <label asp-for="City"></label>
+                        <label asp-for="Employee.City"></label>
                     </div>
                     <div class="col-8">
-                        <input asp-for="City" class="form-control" />
-                        <span asp-validation-for="City" class="text-danger"></span>
+                        <input asp-for="Employee.City" class="form-control" />
+                        <span asp-validation-for="Employee.City" class="text-danger"></span>
                     </div>
                 </div>
                 <div class="form-group row m-2 p-2">
                     <div class="col-4">
-                        <label asp-for="Salary"></label>
+                        <label asp-for="Employee.Salary"></label>
                     </div>
                     <div class="col-8">
-                        <input asp-for="Salary" class="form-control" />
-                        <span asp-validation-for="Salary" class="text-danger"></span>
+                        <input asp-for="Employee.Salary" class="form-control" />
+                        <span asp-validation-for="Employee.Salary" class="text-danger"></span>
                     </div>
                 </div>
                 <div class="form-group row m-2 p-2">
                     <div class="col-4">
-                        <label asp-for="imageUrl"></label>
+                        <label asp-for="Employee.DateJoined"></label>
                     </div>
                     <div class="col-8">
-                        <input type="file" asp-for="imageUrl" class="form-control" />
-                        <span asp-validation-for="imageUrl" class="text-danger"></span>
+                        <input asp-for="Employee.DateJoined" class="form-control" />
+                        <span asp-validation-for="Employee.DateJoined" class="text-danger"></span>
+                    </div>
+                </div>
+                <!-- Department Dropdown -->
+                <div class="form-group row m-2 p-2">
+                    <div class="col-4">
+                        <label asp-for="Employee.DepartmentId"></label>
+                    </div>
+                    <div class="col-8">
+                        @Html.DropDownListFor(m=>m.Employee.DepartmentId,Model.
+                        DepartmentList,"Select Department",new{@class="form-control"})
+                        <span asp-validation-for="Employee.DepartmentId" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="form-group row m-2 p-2">
+                    <div class="col-4">
+                        <label asp-for="Employee.imageUrl"></label>
+                    </div>
+                    <div class="col-8">
+                        <input type="file" name="imageUrl" class="form-control"  multiple/>
+                        <span asp-validation-for="Employee.imageUrl" class="text-danger"></span>
                     </div>
                 </div>
                 <div class="form-group row m-2 p-2">
                     <div class="col-8 offset-4 ">
-                        @if (Model.Id != 0)
-                        {
-                            <div class="form-group row">
-                                <div class="col-6">
-                                    <button type="submit" class="btn btn-info form-control">@saveUpdate</button>
-                                </div>
-                                <div class="col-6">
-                                    <a asp-action="Index" class="btn btn-success form-control">Back To List</a>
-                                </div>
+                        <div class="form-group row">
+                            <div class="col-6">
+                                <button type="submit" class="btn btn-info form-control">@saveUpdate</button>
                             </div>
-                        }
-                        else
-                        {
-                            <div class="form-group row">
-                                <div class="col-6">
-                                    <button type="submit" class="btn btn-info form-control">@saveUpdate</button>
-                                </div>
-                                <div class="col-6">
-                                    <a asp-action="Index" class="btn btn-success form-control">Back To List</a>
-                                </div>
+                            <div class="col-6">
+                                <a asp-action="Index" class="btn btn-success form-control">Back To List</a>
                             </div>
-                        }
+                        </div>
                     </div>
                 </div>
-
             </div>
         </form>
     </div>
     <div class="col-md-4">
-        @if (Model.imageUrl != null && Model.imageUrl.Length > 0)
+        @if (Model.Employee.imageUrl != null && Model.Employee.imageUrl.Length > 0)
         {
-            var base64 = Convert.ToBase64String(Model.imageUrl);
-            var imgSrc = String.Format("data:image/png;base64,{0}", base64);
+            var base64 = Convert.ToBase64String(Model.Employee.imageUrl);
+            var imgSrc = $"data:image/png;base64,{base64}";
             <img src="@imgSrc" class="img-fluid img-thumbnail" />
         }
     </div>
 </div>
-
 
 @section Scripts{
     <partial name="_ValidationScriptsPartial" />

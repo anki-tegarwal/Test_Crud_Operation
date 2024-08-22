@@ -26,6 +26,8 @@ else
                     <th>Street Address</th>
                     <th>City</th>
                     <th>Salary</th>
+                    <th>Date Joined</th>
+                    <th>department</th>
                     <th>Picture</th>
                     <th>actions</th>
                 </tr>
@@ -46,6 +48,8 @@ else
                                 <td>@employee.Address</td>
                                 <td>@employee.City</td>
                                 <td>@employee.Salary</td>
+                                <td>@employee.DateJoined</td>
+                                <td>@employee.Department.Name</td>
                                 <td>
                                     @if (employee.imageUrl != null && employee.imageUrl.Length > 0)
                                     {

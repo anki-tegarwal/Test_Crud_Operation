@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Diagnostics;
+using Test_Crud_Operation.Data;
 using Test_Crud_Operation.Models;
 using Test_Crud_Operation.Models.ViewModel;
 
@@ -9,48 +11,46 @@ namespace Test_Crud_Operation.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly EmployeeDb _context;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger,EmployeeDb context)
         {
             _logger = logger;
+            _context = context;
         }
-
+        
         public IActionResult Index()
         {
-            var random = new Random();
-            var departments = new List<string>
-    {
-        "Technology",
-        "Sales",
-        "Marketing",
-        "Human Resource",
-        "Research And Development",
-        "Accounting",
-        "Support",
-        "Logistics"
-    };
-            var months = new List<string>
-    {
-        "January","February","March","April","May","June","July","August","September","October","November","December"
-    };
+            ViewBag.Departments = _context.Departments
+           .OrderBy(d => d.Name)
+           .Select(d => d.Name)
+           .ToList();
 
-            var model = new List<ReportViewModel>();
+            return View();
+        }
 
-            foreach (var dept in departments)
+
+        [HttpGet]
+        public async Task<JsonResult> GetEmployeeDataByDepartment(string department)
+        {
+            if (string.IsNullOrEmpty(department))
             {
-                foreach (var month in months)
-                {
-                    model.Add(new ReportViewModel
-                    {
-                        DimensionOne = dept,
-                        Quantity = random.Next(0, 12),
-                        Month = month
-                    });
-                }
+                return Json(new { error = "Department is required" });
             }
 
-            return View(model);
+            var data = await _context.Employees
+                .Where(e => e.Department.Name == department) 
+                .GroupBy(e => new {e.DateJoined.Year, e.DateJoined.Month}) 
+                .Select(g => new
+                {
+                    month = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM, yyyy"), 
+                    count = g.Count() 
+                })
+                .ToListAsync();
+
+            return Json(data);
         }
+
 
         public IActionResult Privacy()
         {

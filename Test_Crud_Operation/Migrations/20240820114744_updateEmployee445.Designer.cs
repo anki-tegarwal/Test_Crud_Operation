@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Test_Crud_Operation.Data;
 
@@ -11,9 +12,10 @@ using Test_Crud_Operation.Data;
 namespace Test_Crud_Operation.Migrations
 {
     [DbContext(typeof(EmployeeDb))]
-    partial class EmployeeDbModelSnapshot : ModelSnapshot
+    [Migration("20240820114744_updateEmployee445")]
+    partial class updateEmployee445
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -83,9 +85,6 @@ namespace Test_Crud_Operation.Migrations
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("DateJoined")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("DepartmentId")
                         .HasColumnType("int");

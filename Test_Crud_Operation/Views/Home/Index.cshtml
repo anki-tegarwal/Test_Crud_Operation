@@ -1,82 +1,208 @@
-﻿@model List<Test_Crud_Operation.Models.ViewModel.ReportViewModel>
-
-@{
-    var months = new List<string>
-    {
-        "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
-    };
-
-    var groupedData = Model.GroupBy(x => x.DimensionOne).Select(g => new
-    {
-        department = g.Key,
-        quantities = months.Select(month => g.Where(x => x.Month == month).Sum(x => x.Quantity)).ToList()
-    }).ToList();
-
-    var XLabels = Newtonsoft.Json.JsonConvert.SerializeObject(months);
-    var DataSets = Newtonsoft.Json.JsonConvert.SerializeObject(groupedData.Select(g => new
-    {
-        label = g.department,
-        data = g.quantities,
-        backgroundColor = "rgba(54, 162, 235, 0.2)",
-        borderColor = "rgba(54, 162, 235, 1)",
-        borderWidth = 1
-    }).ToList());
-
-    ViewData["Title"] = "Employees Joined in 2023";
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title>@ViewData["Title"]</title>
-</head>
-<body>
-    <div class="box-body">
-        <div class="chart-container">
-            <canvas id="chart" style="width:100%; height:500px"></canvas>
-        </div>
-    </div>
-</body>
-</html>
+<br />
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<label for="departmentDropdown">Select Department:</label>
+<select id="departmentDropdown">
+    <option value="">--Select Department--</option>
+    @foreach (var department in ViewBag.Departments as List<string>)
+    {
+        <option value="@department">@department</option>
+    }
+</select>
+<input id="findButton" value="Find" type="button" />
+<br />
 
-<script type="text/javascript">
-    $(function () {
-        var ctx = document.getElementById("chart").getContext('2d');
+<div>
+    <canvas id="myBarChart" style="max-width:400px;max-height:430px;"></canvas>
+</div>
+<div>
+    <canvas id="myPieChart" style="max-width:400px;max-height:430px;"></canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
 
-        var data = {
-            labels: @Html.Raw(XLabels),
-            datasets: @Html.Raw(DataSets)
-            };
+<script>
+    $(document).ready(function () {
+        var barCtx = document.getElementById('myBarChart').getContext('2d');
+        var pieCtx = document.getElementById('myPieChart').getContext('2d');
+        var myBarChart, myPieChart;
 
-        var options = {
-            maintainAspectRatio: false,
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        min: 0,
-                        beginAtZero: true
+        $('#findButton').click(function () {
+            var selectedDepartment = $('#departmentDropdown').val();
+            if (selectedDepartment) {
+                $.ajax({
+                    url: '@Url.Action("GetEmployeeDataByDepartment", "Home")',
+                    type: 'GET',
+                    data: { department: selectedDepartment },
+                    success: function (data) {
+                        console.log('Data received:', data); // Log the received data
+
+                        var months = [];
+                        var employeeCounts = [];
+
+                        if (data.error) {
+                            alert(data.error);
+                            return;
+                        }
+
+                        data.forEach(function (item) {
+                            months.push(item.month);
+                            employeeCounts.push(item.count);
+                        });
+
+                        // Destroy existing charts if they exist
+                        if (myBarChart) {
+                            myBarChart.destroy();
+                        }
+                        if (myPieChart) {
+                            myPieChart.destroy();
+                        }
+
+                        // Create Bar Chart
+                        myBarChart = new Chart(barCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: months,
+                                datasets: [{
+                                    label: 'Number of Employees',
+                                    data: employeeCounts,
+                                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 2,
+                                    borderRadius: 5,
+                                    hoverBackgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                }]
+                            },
+                            options: {
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: 'Employees Joined Per Month by Department',
+                                        font: {
+                                            size: 18,
+                                            weight: 'bold'
+                                        },
+                                        padding: {
+                                            top: 10,
+                                            bottom: 30
+                                        }
+                                    },
+                                    legend: {
+                                        display: false
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        grid: {
+                                            display: false
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Months',
+                                            font: {
+                                                size: 14
+                                            }
+                                        }
+                                    },
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: {
+                                            borderDash: [5, 5]
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Number of Employees',
+                                            font: {
+                                                size: 14
+                                            }
+                                        }
+                                    }
+                                },
+                                layout: {
+                                    padding: {
+                                        left: 20,
+                                        right: 20,
+                                        top: 10,
+                                        bottom: 10
+                                    }
+                                },
+                                animation: {
+                                    duration: 1000,
+                                    easing: 'easeOutBounce'
+                                },
+                                hover: {
+                                    animationDuration: 500,
+                                },
+                                responsiveAnimationDuration: 500,
+                            }
+                        });
+
+                        // Create Pie Chart
+                        myPieChart = new Chart(pieCtx, {
+                            type: 'pie',
+                            data: {
+                                labels: months,
+                                datasets: [{
+                                    label: 'Employee Joined',
+                                    data: employeeCounts,
+                                    backgroundColor: [
+                                        'rgba(255, 99, 132, 0.5)',
+                                        'rgba(54, 162, 235, 0.5)',
+                                        'rgba(255, 206, 86, 0.5)',
+                                        'rgba(75, 192, 192, 0.5)',
+                                        'rgba(153, 102, 255, 0.5)',
+                                        'rgba(255, 159, 64, 0.5)',
+                                    ],
+                                    borderColor: [
+                                        'rgba(255, 99, 132, 1)',
+                                        'rgba(54, 162, 235, 1)',
+                                        'rgba(255, 206, 86, 1)',
+                                        'rgba(75, 192, 192, 1)',
+                                        'rgba(153, 102, 255, 1)',
+                                        'rgba(255, 159, 64, 1)',
+                                    ],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: 'Employee Distribution by Month',
+                                        font: {
+                                            size: 18,
+                                            weight: 'bold'
+                                        },
+                                        padding: {
+                                            top: 10,
+                                            bottom: 30
+                                        }
+                                    },
+                                    legend: {
+                                        position: 'bottom'
+                                    }
+                                },
+                                responsive: true,
+                                animation: {
+                                    duration: 1000,
+                                    easing: 'easeOutBounce'
+                                },
+                            }
+                        });
                     },
-                    gridLines: {
-                        display: true,
-                        color: "rgba(255,99,164,0.2)"
+                    error: function (xhr, status, error) {
+                        console.log('AJAX Error:', xhr, status, error); // Log the error details
+                        alert('Error retrieving data');
                     }
-                }],
-                xAxes: [{
-                    gridLines: {
-                        display: false
-                    }
-                }]
+                });
+            } else {
+                alert('Please select a department');
             }
-        };
-
-        var myChart = new Chart(ctx, {
-            type: 'bar',
-            data: data,
-            options: options
         });
     });
 </script>
+
+

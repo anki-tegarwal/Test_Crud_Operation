@@ -12,10 +12,17 @@ namespace Test_Crud_Operation.Models
         public string Address { get; set; }
         [Required]
         public string City { get; set; }
+        public int DepartmentId { get; set; }
+        public Department Department { get; set; }
+
         [Required]
         public int Salary { get; set; }
         public bool IsDeleted { get; set; } = false;
         [Display(Name ="Picture")]
         public byte[]? imageUrl { get; set; }
+        [Required]
+        [Display(Name = "Date Joined")]
+        [DataType(DataType.Date)]
+        public DateTime DateJoined { get; set; }
     }
 }
