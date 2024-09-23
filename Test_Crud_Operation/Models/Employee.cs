@@ -19,7 +19,7 @@ namespace Test_Crud_Operation.Models
         public int Salary { get; set; }
         public bool IsDeleted { get; set; } = false;
         [Display(Name ="Picture")]
-        public byte[]? imageUrl { get; set; }
+        public ICollection<EmployeeImage> Images { get; set; } = new List<EmployeeImage>();
         [Required]
         [Display(Name = "Date Joined")]
         [DataType(DataType.Date)]

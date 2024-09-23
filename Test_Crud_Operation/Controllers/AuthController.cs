@@ -23,7 +23,7 @@ namespace Test_Crud_Operation.Controllers
         {
             return View();
         }
-        
+
         [HttpPost]
         public async Task<IActionResult> Register(RegisterViewModel registerViewModel)
         {
@@ -43,7 +43,8 @@ namespace Test_Crud_Operation.Controllers
 
             return View(registerViewModel);
         }
-        public IActionResult Login () {
+        public IActionResult Login()
+        {
             return View();
         }
         [HttpPost]
@@ -53,15 +54,21 @@ namespace Test_Crud_Operation.Controllers
             {
                 try
                 {
-                   var user = await _authService.Login(loginViewModel);
-                    TempData["JwtToken"] = user.Token; 
+                    var user = await _authService.Login(loginViewModel);
+                    var token = user.Token;
+
+                    // Set token in session storage via JavaScript
+                    TempData["JwtToken"] = token;
+
                     var claims = new List<Claim>
-                   {
-                       new Claim(ClaimTypes.Name,user.Email)
-                   };
+            {
+                new Claim(ClaimTypes.Name, user.Email)
+            };
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     var principal = new ClaimsPrincipal(identity);
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,principal);
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+                    // Redirect to Home Index and set token in client-side
                     return RedirectToAction("Index", "Home");
                 }
                 catch (Exception ex)
@@ -72,11 +79,12 @@ namespace Test_Crud_Operation.Controllers
 
             return View(loginViewModel);
         }
+
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            return RedirectToAction("Index","Home");
+            return RedirectToAction("Index", "Home");
         }
 
     }

@@ -26,23 +26,17 @@
                    
                     </ul>
                 <ul class="navbar-nav">
-                    @if (Context.User.Identity.IsAuthenticated)
-                    {
-                        <li class="nav-item">
-                            <form asp-controller="Auth" asp-action="Logout" method="post" class="form-inline">
-                                <button type="submit" class="btn btn-link nav-link text-white" id="logoutButton">Logout</button>
-                            </form>
-                        </li>
-                    }
-                    else
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link text-white" asp-area="" asp-controller="Auth" asp-action="Login">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" asp-area="" asp-controller="Auth" asp-action="Register">Register</a>
-                        </li>
-                    }
+                    <li class="nav-item" id="loginLink">
+                        <a class="nav-link text-white" asp-area="" asp-controller="Auth" asp-action="Login">Login</a>
+                    </li>
+                    <li class="nav-item" id="registerLink">
+                        <a class="nav-link text-white" asp-area="" asp-controller="Auth" asp-action="Register">Register</a>
+                    </li>
+                    <li class="nav-item" id="logoutLink" style="display:none;">
+                        <form asp-controller="Auth" asp-action="Logout" method="post" class="form-inline">
+                            <button type="submit" class="btn btn-link nav-link text-white">Logout</button>
+                        </form>
+                    </li>
                 </ul>
                 </div>
         </nav>
@@ -62,34 +56,55 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-   
+
+
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var token = '@TempData["JwtToken"]';
-            if (token) {
-                sessionStorage.setItem('JwtToken', token); // Or sessionStorage.setItem
-            }
-        });
-        var token = sessionStorage.getItem('JwtToken');
+        const token = sessionStorage.getItem('JwtToken');
+
         fetch('/api/some-endpoint', {
             method: 'GET',
             headers: {
-                'Authorization': 'Bearer ' + token
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
-        }).then(response => response.json())
-            .then(data => console.log(data));
+        })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
 
         document.addEventListener('DOMContentLoaded', function () {
-            const logoutButton = document.getElementById('logoutButton');
-            if (logoutButton) {
-                logoutButton.addEventListener('click', function () {
+            var token = '@TempData["JwtToken"]';
+            if (token) {
+                sessionStorage.setItem('JwtToken', token);
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+            var token = sessionStorage.getItem('JwtToken');
+            if (token) {
+                // User is logged in
+                document.getElementById('loginLink').style.display = 'none';
+                document.getElementById('registerLink').style.display = 'none';
+                document.getElementById('logoutLink').style.display = 'block';
+            } else {
+                // User is not logged in
+                document.getElementById('loginLink').style.display = 'block';
+                document.getElementById('registerLink').style.display = 'block';
+                document.getElementById('logoutLink').style.display = 'none';
+            }
+        });
+
+        // Clear token on logout
+        document.addEventListener('DOMContentLoaded', function () {
+            const logoutLink = document.getElementById('logoutLink');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', function () {
                     sessionStorage.removeItem('JwtToken');
                 });
             }
         });
-
-
     </script>
+
+    </>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

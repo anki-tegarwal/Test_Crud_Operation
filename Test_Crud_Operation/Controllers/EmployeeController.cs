@@ -1,8 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Test_Crud_Operation.Data;
 using Test_Crud_Operation.Models;
 using Test_Crud_Operation.Models.ViewModel;
@@ -10,42 +15,46 @@ using Test_Crud_Operation.service.Iservice;
 
 namespace Test_Crud_Operation.Controllers
 {
+    [Authorize]
     public class EmployeeController : Controller
     {
         private readonly IempService _iempService;
         private readonly EmployeeDb _context;
+        private readonly IWebHostEnvironment _hostEnvironment;
 
-        public EmployeeController(IempService iempService, EmployeeDb employeeDb)
+        public EmployeeController(IempService iempService, EmployeeDb employeeDb, IWebHostEnvironment webHostEnvironment)
         {
             _iempService = iempService;
             _context = employeeDb;
+            _hostEnvironment = webHostEnvironment;
         }
 
         public IActionResult Index()
         {
-            var employeeList = _context.Employees.Include(e=>e.Department).ToList();
+            var employeeList = _context.Employees.Include(e => e.Department).Include(e=>e.Images).ToList();
             return View(employeeList);
         }
 
         public IActionResult Upsert(int? id)
         {
-            EmployeeVM employeeVM = new EmployeeVM()
+            var employeeVM = new EmployeeVM()
             {
                 Employee = new Employee(),
                 DepartmentList = _context.Departments.Select(cl => new SelectListItem()
                 {
                     Text = cl.Name,
                     Value = cl.Id.ToString(),
-                }).ToList()  // Added ToList() to finalize the query
+                }).ToList()
             };
 
             if (id == null)
-                return View(employeeVM); //create view with EmployeeVM
+                return View(employeeVM); // Create view with EmployeeVM
 
-            //edit
+            // Edit
             var employee = _iempService.GetEmployee(id.GetValueOrDefault());
             if (employee == null)
                 return NotFound();
+            employee.Images = _context.EmployeeImages.Where(ei => ei.EmployeeId == employee.Id).ToList();
 
             employeeVM.Employee = employee; // Assign the existing employee to the VM
             return View(employeeVM);
@@ -53,63 +62,122 @@ namespace Test_Crud_Operation.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Upsert(EmployeeVM employeeVM)
+        public async Task<IActionResult> Upsert(EmployeeVM employeeVM)
         {
             if (employeeVM.Employee == null)
                 return NotFound();
+
+            if (!ModelState.IsValid)
+            {
+                // Ensure DepartmentList is populated in case of errors
+                employeeVM.DepartmentList = _context.Departments.Select(cl => new SelectListItem()
+                {
+                    Text = cl.Name,
+                    Value = cl.Id.ToString(),
+                }).ToList();
+                return View(employeeVM);
+            }
 
             // Check for duplicates
             if (_iempService.IsDuplicateEmployee(employeeVM.Employee.Name, employeeVM.Employee.Id))
             {
                 ModelState.AddModelError("", "The name is already saved.");
+                employeeVM.DepartmentList = _context.Departments.Select(cl => new SelectListItem()
+                {
+                    Text = cl.Name,
+                    Value = cl.Id.ToString(),
+                }).ToList();
                 return View(employeeVM);
             }
 
-            if (ModelState.IsValid)
+            if (employeeVM.Employee.Id == 0)
             {
-                var files = HttpContext.Request.Form.Files;
-                if (files.Count > 0)
-                {
-                    byte[] p1 = null;
-                    using (var fs1 = files[0].OpenReadStream())
-                    {
-                        using (var ms1 = new MemoryStream())
-                        {
-                            fs1.CopyTo(ms1);
-                            p1 = ms1.ToArray();
-                        }
-                    }
-                    employeeVM.Employee.imageUrl = p1;
-                }
-                else
-                {
-                    var employeeInDb = _iempService.GetEmployee(employeeVM.Employee.Id);
-                    if (employeeInDb != null)
-                    {
-                        employeeVM.Employee.imageUrl = employeeInDb.imageUrl;
-                    }
-                }
-
-                if (employeeVM.Employee.Id == 0)
-                {
-                    employeeVM.Employee.DateJoined = DateTime.UtcNow;
-                    _iempService.CreateEmployee(employeeVM.Employee);
-                }
-                else
-                    _iempService.UpdateEmployee(employeeVM.Employee);
-
-                _iempService.Save();
-                return RedirectToAction(nameof(Index));
+                _iempService.CreateEmployee(employeeVM.Employee);
+            }
+            else
+            {
+                _iempService.UpdateEmployee(employeeVM.Employee);
             }
 
-            // If ModelState is invalid, return the view with the current VM
-            employeeVM.DepartmentList = _context.Departments.Select(cl => new SelectListItem()
-            {
-                Text = cl.Name,
-                Value = cl.Id.ToString(),
-            }).ToList(); // Ensure DepartmentList is populated in case of errors
+            _context.SaveChanges();
 
-            return View(employeeVM);
+            //var imageToDelete =   HttpContext.Request.Form["deleteImages"].ToList();
+            //if (!string.IsNullOrEmpty(deleteImages))
+            //{
+            //    var deleteImageIds = deleteImages.Split(',').Select(id => int.Parse(id)).ToList();
+            //    foreach (var imageId in deleteImageIds)
+            //    {
+            //        var image = _context.EmployeeImages.FirstOrDefault(e => e.Id == imageId);
+            //        if (image != null)
+            //        {
+            //            var imagePath = Path.Combine(_hostEnvironment.WebRootPath, image.ImageUrl.TrimStart('\\'));
+            //            if (System.IO.File.Exists(imagePath))
+            //            {
+            //                System.IO.File.Delete(imagePath);
+            //            }
+            //            _context.EmployeeImages.Remove(image);
+            //        }
+            //    }
+            //    _context.SaveChanges();
+            //}
+
+            var webRootPath = _hostEnvironment.WebRootPath;
+            var files = HttpContext.Request.Form.Files;
+            var uploads = Path.Combine(webRootPath, "images/employee");
+            if (files.Count > 0)
+            {
+                //Remove existing images if editing an employee
+                if (employeeVM.Employee.Id != 0)
+                {
+                    var existingImages = _context.EmployeeImages.Where(ei => ei.EmployeeId == employeeVM.Employee.Id).ToList();
+                    foreach (var image in existingImages)
+                    {
+                        var imagePath = Path.Combine(webRootPath, image.ImageUrl.TrimStart('\\'));
+                        if (System.IO.File.Exists(imagePath))
+                        {
+                            System.IO.File.Delete(imagePath);
+                        }
+                        _context.EmployeeImages.Remove(image);
+                    }
+                    _context.SaveChanges();
+                }
+
+                foreach (var file in files)
+                {
+                    var fileName = Guid.NewGuid().ToString();
+                    var extension = Path.GetExtension(file.FileName);
+                    var filePath = Path.Combine(uploads, fileName + extension);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        file.CopyTo(fileStream);
+                    }
+
+                    var imageUrl = Path.Combine("images/employee", fileName + extension);
+                    var employeeImage = new EmployeeImage
+                    {
+                        EmployeeId = employeeVM.Employee.Id,
+                        ImageUrl = imageUrl
+                    };
+
+                    _context.EmployeeImages.Add(employeeImage);
+                }
+            }
+         
+
+
+            _context.SaveChanges();
+            return RedirectToAction(nameof(Index));
+        }
+        [HttpDelete]
+        public IActionResult DeleteImage(int id)
+        {
+            var image = _context.EmployeeImages.Find(id);
+            if (image == null)
+                return Json(new { success = false });
+            _context.EmployeeImages.Remove(image);
+            _context.SaveChanges();
+            return Json(new { success = true });
         }
 
         public IActionResult Delete(int id)
@@ -117,7 +185,17 @@ namespace Test_Crud_Operation.Controllers
             var employeeInDb = _iempService.GetEmployee(id);
             if (employeeInDb == null)
                 return NotFound();
+            var employeeImages = _context.EmployeeImages.Where(ei => ei.EmployeeId == employeeInDb.Id).ToList();
 
+            foreach (var image in employeeImages)
+            {
+                var imagePath = Path.Combine(_hostEnvironment.WebRootPath, image.ImageUrl.TrimStart('\\'));
+                if(System.IO.File.Exists(imagePath))
+                {
+                    System.IO.File.Delete(imagePath);   
+                }
+            }
+            _context.EmployeeImages.RemoveRange(employeeImages);
             employeeInDb.IsDeleted = true;
             _iempService.DeleteEmployee(employeeInDb);
             _iempService.Save();

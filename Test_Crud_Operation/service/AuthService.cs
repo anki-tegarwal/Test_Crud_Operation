@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Test_Crud_Operation.Data;
+using Test_Crud_Operation.Migrations;
 using Test_Crud_Operation.Models;
 using Test_Crud_Operation.Models.ViewModel;
 using Test_Crud_Operation.service.Iservice;
@@ -14,14 +16,18 @@ namespace Test_Crud_Operation.service
     {
         private readonly EmployeeDb _employeeDb;
         private readonly IConfiguration _configuration;
+        private readonly JwtToken _token;
+        private readonly IjwtUtils _utils;
 
-        public AuthService(EmployeeDb employeeDb, IConfiguration configuration)
+        public AuthService(EmployeeDb employeeDb, IConfiguration configuration, IOptions<JwtToken> tokenOptions,IjwtUtils utils)
         {
             _employeeDb = employeeDb;
             _configuration = configuration;
+            _token = tokenOptions.Value;
+            _utils = utils;
         }
 
-      
+       
 
         public async Task<ApplicationUser> Login(LoginViewModel loginViewModel)
         {
@@ -33,13 +39,14 @@ namespace Test_Crud_Operation.service
             }
 
             // Generate JWT token
-            var token = GenerateJwtToken(user);
+            var token = _utils.GenerateToken(user);
             user.Token = token;
 
             return user;
         }
+      
 
-   
+
 
         public async Task<ApplicationUser> Register(RegisterViewModel registerViewModel)
         {
@@ -61,25 +68,23 @@ namespace Test_Crud_Operation.service
 
             return user;
         }
-        private string GenerateJwtToken(ApplicationUser user)
+        
+
+       
+
+        public async Task<ApplicationUser> GetById(int id)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["JwtToken:secret"]);
+            return await _employeeDb.ApplicationUsers.FirstOrDefaultAsync(x => x.Id == id);
+        }
 
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.Name, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                }),
-                Expires = DateTime.UtcNow.AddHours(1),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
+        public string Authenticate(string username, string password)
+        {
+            var user = _employeeDb.ApplicationUsers.SingleOrDefault(x => x.Email == username && x.Password == password);
+            if (user == null)
+                return null;
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            // Generate JWT token
+            return _utils.GenerateToken(user);
         }
     }
 }

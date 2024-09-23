@@ -9,6 +9,7 @@ namespace Test_Crud_Operation.Data
         {
         }
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<EmployeeImage> EmployeeImages { get; set; }
 
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<Department> Departments { get; set; }

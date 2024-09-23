@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Test_Crud_Operation;
+using Test_Crud_Operation.Authorization;
 using Test_Crud_Operation.Data;
 using Test_Crud_Operation.service;
 using Test_Crud_Operation.service.Iservice;
@@ -15,30 +16,37 @@ string cs = builder.Configuration.GetConnectionString("conStr");
 builder.Services.AddDbContext<EmployeeDb>(option => option.UseSqlServer(cs));
 builder.Services.AddScoped<IempService, EmpService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IjwtUtils, JwtUtils>();
+
 //jwt Authentication
 
 var JwtSection = builder.Configuration.GetSection("JwtToken");
 builder.Services.Configure<JwtToken>(JwtSection);
 var appSetting = JwtSection.Get<JwtToken>();
 var key = Encoding.ASCII.GetBytes(appSetting.secret);
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).
-    AddCookie(CookieAuthenticationDefaults.AuthenticationScheme,x =>
+builder.Services.AddAuthentication(options =>
 {
-    x.LoginPath = "/Auth/Login"; // Path to login page
-    x.LogoutPath = "/Auth/Logout"; // Path to logout page
-    
-}).AddJwtBearer(x =>
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
-    x.RequireHttpsMetadata = false;
-    x.SaveToken = true;
-    x.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters()
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false,
         ValidateAudience = false
     };
+})
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    options.LoginPath = "/Account/Login"; // Customize your login path
 });
+
 // Add services to the container.
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
@@ -56,7 +64,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-app.UseAuthentication();
+app.UseMiddleware<JwtMiddleware>();
+
+//app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

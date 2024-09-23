@@ -7,7 +7,11 @@
 
 <div class="row">
     <div class="col-md-8">
-        <form method="post" enctype="multipart/form-data">
+        <form id="employeeForm" method="post" enctype="multipart/form-data">
+            @if (Model.Employee.Id != 0)
+            {
+                <input type="hidden" asp-for="@Model.Employee.Id">
+            }
             <div class="row">
                 <div class="col-9">
                     <h2 class="text-primary">@title</h2>
@@ -56,11 +60,18 @@
                         <label asp-for="Employee.DateJoined"></label>
                     </div>
                     <div class="col-8">
-                        <input asp-for="Employee.DateJoined" class="form-control" />
+                        @if (Model.Employee.Id != 0)
+                        {
+                            <input asp-for="Employee.DateJoined"  class="form-control"
+                               value="@Model.Employee.DateJoined.ToString("yyyy-MM-dd")" readonly />
+                        }
+                        else
+                        {
+                            <input asp-for="Employee.DateJoined" id="datepickers" class="form-control" />
+                        }
                         <span asp-validation-for="Employee.DateJoined" class="text-danger"></span>
                     </div>
                 </div>
-                <!-- Department Dropdown -->
                 <div class="form-group row m-2 p-2">
                     <div class="col-4">
                         <label asp-for="Employee.DepartmentId"></label>
@@ -73,11 +84,11 @@
                 </div>
                 <div class="form-group row m-2 p-2">
                     <div class="col-4">
-                        <label asp-for="Employee.imageUrl"></label>
+                        <label asp-for="Employee.Images"></label>
                     </div>
                     <div class="col-8">
-                        <input type="file" name="imageUrl" class="form-control"  multiple/>
-                        <span asp-validation-for="Employee.imageUrl" class="text-danger"></span>
+                        <input type="file" name="imageUrl" class="form-control" multiple />
+                        <span asp-validation-for="Employee.Images" class="text-danger"></span>
                     </div>
                 </div>
                 <div class="form-group row m-2 p-2">
@@ -96,11 +107,18 @@
         </form>
     </div>
     <div class="col-md-4">
-        @if (Model.Employee.imageUrl != null && Model.Employee.imageUrl.Length > 0)
+        @if (Model.Employee.Images != null && Model.Employee.Images.Count > 0)
         {
-            var base64 = Convert.ToBase64String(Model.Employee.imageUrl);
-            var imgSrc = $"data:image/png;base64,{base64}";
-            <img src="@imgSrc" class="img-fluid img-thumbnail" />
+            
+                
+            foreach (var image in Model.Employee.Images)
+            {
+                <img src="@Url.Content("~/" + image.ImageUrl)" class="img-fluid img-thumbnail" 
+                style="max-width: 150px; max-height: 150px; margin-bottom: 10px;" />
+                <button type="button" class="btn btn-danger" onclick="deleteImage('@Url.Action("DeleteImage",
+                new { id = image.Id })', '@image.Id')">Delete</button>
+            }
+            
         }
     </div>
 </div>
@@ -108,3 +126,69 @@
 @section Scripts{
     <partial name="_ValidationScriptsPartial" />
 }
+
+
+<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+<script src="https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<link href="https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script>
+    $(document).ready(function () {
+        var currentTime = new Date();
+        var month = currentTime.getMonth() + 1;
+        var day = currentTime.getDate();
+        var year = currentTime.getFullYear();
+
+        // Display the date in the desired format
+
+        // If you want to set this date in the datepicker or an input field
+        $('#datepickers').val(month + "/" + day + "/" + year);
+    });
+    $('#employeeForm').submit(function () {
+        var selectedImages = [];
+        $('input[name="deleteImages"]:checked').each(function () {
+            selectedImages.push($(this).val());
+        });
+
+        $('<input>').attr({
+            type: 'hidden',
+            name: 'deleteImages',
+            value: selectedImages.join(',')
+        }).appendTo('#employeeForm');
+
+        return true; // Allow form to submit
+    });
+
+
+    function deleteImage(url, imageId) {
+        swal({
+            title: "Are you sure?",
+            text: "You will not be able to recover this image!",
+            icon: "warning",
+            buttons: true,
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                $.ajax({
+                    url: url,
+                    type: "DELETE",
+                    success: function (data) {
+                        if (data.success) {
+                            // Remove the image from the DOM
+                            $("#image-" + imageId).remove();
+                            swal("Image deleted successfully!", {
+                                icon: "success",
+                            }).then(()=>{
+                                location.reload();
+                            });
+                        } else {
+                            swal("Image not deleted!", {
+                                icon: "error",
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>

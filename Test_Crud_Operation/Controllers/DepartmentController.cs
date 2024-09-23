@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Test_Crud_Operation.Data;
 using Test_Crud_Operation.Models;
 
 namespace Test_Crud_Operation.Controllers
 {
+    [Authorize]
     public class DepartmentController : Controller
     {
         private readonly EmployeeDb _employeeDb;

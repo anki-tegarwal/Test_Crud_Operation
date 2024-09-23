@@ -51,11 +51,12 @@ else
                                 <td>@employee.DateJoined</td>
                                 <td>@employee.Department.Name</td>
                                 <td>
-                                    @if (employee.imageUrl != null && employee.imageUrl.Length > 0)
+                                    @if (employee.Images != null)
                                     {
-                                        var base64 = Convert.ToBase64String(employee.imageUrl);
-                                        var imgSrc = String.Format("data:image/png;base64,{0}", base64);
-                                        <img src="@imgSrc" alt="Employee Picture" style="max-width: 100px; max-height: 100px;" />
+                                        foreach (var image in employee.Images)
+                                        {
+                                            <img src="@Url.Content("~/" + image.ImageUrl)" alt="Employee Picture" style="max-width: 100px; max-height: 100px; margin-right: 5px;" />
+                                        }
                                     }
                                     else
                                     {

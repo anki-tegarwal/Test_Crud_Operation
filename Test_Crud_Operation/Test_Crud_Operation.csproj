@@ -25,6 +25,7 @@
   <ItemGroup>
     <Folder Include="Migrations\" />
     <Folder Include="Views\Account\" />
+    <Folder Include="wwwroot\images\employee\" />
   </ItemGroup>
 
 </Project>
